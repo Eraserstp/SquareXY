@@ -1,15 +1,16 @@
 /**********
 
+SquareXY
+
+author: Andrey 'Eraser' Stepanov
+mailto: eraserstp@gmail.com
+
+Forked from:
+
 Smartcore : L'empileuse
 
 author: serge.vi / smartfriendz
 licence : GPL
-
-
-
-TODO:
-- clips glass
-
 
 ***********/
 
