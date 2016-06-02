@@ -49,7 +49,7 @@ var boxType = 1; // 0=wood standard , 1=extrusion frame ,2=closed box ,3=mini?
 var _extrusionSize = 15;
 
 var thickness = 3; //printed wall thickness
-var armlen = 70; //printed cotner lenght
+var armlen = 60; //printed cotner lenght
 
 // global for work
 var headoffset = -90; // used to place the head along X axis
@@ -341,7 +341,7 @@ var mesh;
     
     var Y = 20;
     var Z = 40;
-    var bearingsOffsetZ = 15;
+    var bearingsOffsetZ = 13;
     var bearingsOffsetX = 20;
     var bearingHoleOffsetX = bearingsOffsetX+13;
     var X = 40;
@@ -844,15 +844,87 @@ function cornerLR(side){
     return mesh;
 }
 
-
-
 function bearingsXY(side){
+    var mesh;
+    var corner_wall;
+    var bearingsHeight = 8;
+    var X = 20; //width of bearings base
+    var Z = thickness*3+bearingsHeight*2; //height of bearings base
+    var Y = 51; //depth of bearings base
+    var bearingSlot = 22; //size of bearing slot
+    var beltSlot = 4; //size of belt slot
+    corner_wall = linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] }));
+    mesh = union(
+        //central cube
+        cube({size:[_wallThickness,_wallThickness,_wallThickness]}).translate([0, 0, 0]),
+        //bearings base
+        cube({size:[X,Y,Z]}).translate([_wallThickness+thickness*2, _wallThickness, _wallThickness+thickness/2-Z/2]),
+        //top wall
+        corner_wall.translate([-thickness, -thickness, _wallThickness]),
+        //front wall
+        corner_wall.rotateX(-90).translate([-thickness, -thickness, _wallThickness+thickness]),
+        //side wall
+        corner_wall.rotateX(-90).rotateZ(90).translate([0, -thickness, _wallThickness+thickness]),
+        //socket walls
+        cube({size:[armlen-_wallThickness-thickness,thickness,_wallThickness+thickness]}).translate([_wallThickness, _wallThickness, -thickness]),
+        cube({size:[armlen-_wallThickness-thickness,_wallThickness+thickness,thickness]}).translate([_wallThickness, 0, -thickness]),
+        cube({size:[thickness,armlen-_wallThickness-thickness,_wallThickness+thickness]}).translate([_wallThickness, _wallThickness, -thickness]),
+        cube({size:[_wallThickness+thickness,armlen-_wallThickness-thickness,thickness]}).translate([0, _wallThickness, -thickness]),
+        cube({size:[thickness,_wallThickness+thickness,armlen-_wallThickness-thickness]}).translate([_wallThickness, 0, -armlen+_wallThickness+thickness]),
+        cube({size:[_wallThickness+thickness,thickness,armlen-_wallThickness-thickness]}).translate([0, _wallThickness, -armlen+_wallThickness+thickness])
+        
+    );
+    //holes
+    mesh = difference(
+            mesh,
+            // long bearing hole
+            cylinder({r:4.1,h:40,fn:_globalResolution}).translate([_wallThickness+thickness*2+X/2, _wallThickness+Y/2, _wallThickness+thickness/2-Z/2])
+        );
+    //offsets
+    //front/back offset
+    if(_offsetFront>0){
+        mesh = union(
+            mesh,
+            cube({size:[_offsetFront/2,_wallThickness,_wallThickness]}).translate([0, _wallThickness, 0]).setColor(0.5,1,0.5)
+        );
+    }
+    //side offset
+    if(_offsetSide>0){
+        mesh = union(
+            mesh,
+            cube({size:[_wallThickness,_offsetSide/2,_wallThickness]}).translate([_wallThickness, 0, 0]).setColor(0.5,1,0.5)
+        );
+    }
+    //stand offset
+    if(_offsetStand>0){
+        mesh = union(
+            mesh,
+            cube({size:[_wallThickness,_wallThickness,-_offsetStand/2]}).translate([0, 0, 0]).setColor(0.5,1,0.5)
+        );
+    }
+    mesh = difference(
+        mesh,
+        union(            
+            // support bearings
+            cube({size:[X,bearingSlot+beltSlot,bearingsHeight]}).translate([_wallThickness+thickness*2,_wallThickness+Y-bearingSlot-beltSlot, _wallThickness+thickness]),
+            cube({size:[X,bearingSlot+beltSlot,bearingsHeight]}).translate([_wallThickness+thickness*2,_wallThickness+Y-bearingSlot-beltSlot, _wallThickness-bearingsHeight])
+        )
+    );
+    return mesh;
+}
+
+function ruler(){
+    return cube([400,20,3]).setColor(0.4,0.8,0.4,0.5);
+}
+
+/*function bearingsXY(side){
     var mesh;
     
     var Y = 20;  //width of bearings
-    var Z = 33;
+    var Z = 28+thickness;
     var X = 51;
-    var bearingsOffsetZ = 11;
+    var bearingsOffsetY = 3;
+    var bearingsOffsetZ = 9;
     var bearingsOffsetX = 30+_wallThickness;
     var bearingHoleOffsetX = bearingsOffsetX+13;
     var topXOffset =0;
@@ -876,27 +948,33 @@ function bearingsXY(side){
                 ),
             // support bearings
             cube({size:[X+10,Y,8]}).translate([bearingsOffsetX-bottomXOffset,0,bearingsOffsetZ]),
-            cube({size:[X+10,Y,8]}).translate([bearingsOffsetX-topXOffset,0,bearingsOffsetZ+11])
+            cube({size:[X+10,Y,8]}).translate([bearingsOffsetX-topXOffset,0,bearingsOffsetZ+8+thickness])
             ),
             
             //extra for y rod
             //cylinder({r:_XYrodsDiam/2,h:12,fn:_globalResolution}).rotateX(90).translate([20,_nemaXYZ,4]),
-            cylinder({r:_XYrodsDiam/2*thickness,h:Y,fn:_globalResolution}).rotateX(-90).translate([_wallThickness+20+thickness,0,1]),
+            cylinder({r:_XYrodsDiam/2+thickness,h:Y,fn:_globalResolution}).rotateX(-90).translate([_wallThickness+20+thickness,0,1]),
 
             // round bearings supports in middle
             cylinder({r:5,h:0.5,fn:_globalResolution}).translate([bearingHoleOffsetX-bottomXOffset,Y/2,bearingsOffsetZ]),
             cylinder({r:5,h:0.5,fn:_globalResolution}).translate([bearingHoleOffsetX-bottomXOffset,Y/2,bearingsOffsetZ+7.5]),
-            cylinder({r:5,h:0.5,fn:_globalResolution}).translate([bearingHoleOffsetX-topXOffset,Y/2,bearingsOffsetZ+11]),
-            cylinder({r:5,h:0.5,fn:_globalResolution}).translate([bearingHoleOffsetX-topXOffset,Y/2,bearingsOffsetZ+11+7.5]),
+            cylinder({r:5,h:0.5,fn:_globalResolution}).translate([bearingHoleOffsetX-topXOffset,Y/2,bearingsOffsetZ+8+thickness]),
+            cylinder({r:5,h:0.5,fn:_globalResolution}).translate([bearingHoleOffsetX-topXOffset,Y/2,bearingsOffsetZ+8+thickness+7.5]),
             // central cube
-            cube({size:[_wallThickness,_wallThickness,_wallThickness]}).translate([thickness, Y+thickness, 2]),
+            cube({size:[_wallThickness,_wallThickness,_wallThickness]}).translate([thickness, Y+thickness, 0]),
             //top wall
-            linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] })).rotateX(180).translate([0, Y+thickness+_wallThickness, 2+_wallThickness+thickness]),
+            linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] })).rotateX(180).translate([0, Y+thickness*2+_wallThickness, 2+_wallThickness+thickness]),
             //side wall
-            linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] })).rotateX(-90).rotateZ(-90).translate([0, Y+thickness+_wallThickness, 2+_wallThickness+thickness]),
+            linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] })).rotateX(-90).rotateZ(-90).translate([0, Y+thickness*2+_wallThickness, 2+_wallThickness+thickness]),
             //back wall
-            linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] })).rotateX(-90).translate([0, Y+thickness+_wallThickness, 2+_wallThickness+thickness])
-            
+            linear_extrude({ height: thickness }, polygon({ points: [[0,0], [0, armlen], [_wallThickness+thickness*2, armlen], [armlen, _wallThickness+thickness*2], [armlen,0]] })).rotateX(-90).translate([0, Y+thickness*2+_wallThickness, 2+_wallThickness+thickness]),
+            //socket walls
+            //cube({size:[armlen-_wallThickness-thickness,thickness,_wallThickness+thickness]}).translate([thickness+_wallThickness, thickness+_wallThickness, thickness]),
+            //cube({size:[armlen-_wallThickness-thickness,_wallThickness+thickness,thickness]}).translate([thickness+_wallThickness, thickness, thickness+_wallThickness]),
+            //cube({size:[thickness,armlen-_wallThickness-thickness,_wallThickness+thickness]}).translate([thickness+_wallThickness, thickness+_wallThickness, thickness]),
+            //cube({size:[_wallThickness+thickness,armlen-_wallThickness-thickness,thickness]}).translate([thickness, thickness+_wallThickness, thickness+_wallThickness]),
+            //cube({size:[thickness,_wallThickness+thickness,armlen-_wallThickness-thickness]}).translate([thickness+_wallThickness, thickness, thickness+_wallThickness]),
+            cube({size:[_wallThickness+thickness,thickness,armlen-_wallThickness-thickness]}).translate([thickness, Y+thickness, -armlen+_wallThickness+thickness])
         ),
         // Yrod
         cylinder({r:_XYrodsDiam/2,h:Y,fn:_globalResolution}).rotateX(-90).translate([_wallThickness+20+thickness,0,1]),
@@ -933,21 +1011,21 @@ function bearingsXY(side){
     if(_offsetFront>0){
         mesh = union(
             mesh,
-            cube({size:[_offsetFront/2,_wallThickness,_wallThickness]}).translate([thickness+_wallThickness, Y+thickness, 2]).setColor(0.5,1,0.5)
+            cube({size:[_offsetFront/2,_wallThickness,_wallThickness]}).translate([thickness+_wallThickness, Y+thickness*2, 2]).setColor(0.5,1,0.5)
         );
     }
     //side offset
     if(_offsetSide>0){
         mesh = union(
             mesh,
-            cube({size:[_wallThickness,_offsetSide/2,_wallThickness]}).translate([thickness, Y+thickness-_offsetSide/2, 2]).setColor(0.5,1,0.5)
+            cube({size:[_wallThickness,_offsetSide/2,_wallThickness]}).translate([thickness, Y+thickness*2-_offsetSide/2, 2]).setColor(0.5,1,0.5)
         );
     }
     //stand offset
     if(_offsetStand>0){
         mesh = union(
             mesh,
-            cube({size:[_wallThickness,_wallThickness,_offsetStand/2]}).translate([thickness, Y+thickness, 2-_offsetStand/2]).setColor(0.5,1,0.5)
+            cube({size:[_wallThickness,_wallThickness,_offsetStand/2]}).translate([thickness, Y+thickness*2, 2-_offsetStand/2]).setColor(0.5,1,0.5)
         );
     }
     if(side=="left"){
@@ -983,7 +1061,7 @@ function bearingsXY(side){
     }
     return mesh;
 
-}
+}*/
 
 
 
@@ -1754,6 +1832,7 @@ switch(output){
         res = [
             _walls(),
             _rods(),
+            ruler().rotateZ(90).rotateY(90).translate([-_globalWidth/2+40,-_globalDepth/2+thickness,_globalHeight]),
             
             //nema left
             _nema().translate([-_globalWidth/2,-_globalDepth/2+thickness,_globalHeight-_nemaXYZ-20]),
@@ -1768,8 +1847,8 @@ switch(output){
             cornerLR("left").rotateZ(180).translate([_globalWidth/2+_wallThickness+thickness,_globalDepth/2+_wallThickness+thickness,-_wallThickness-thickness]),
             cornerLR("right").mirroredX().rotateZ(180).translate([-_globalWidth/2-_wallThickness-thickness,_globalDepth/2+_wallThickness+thickness,-_wallThickness-thickness]),
             //bearings
-            bearingsXY("left").translate([-_globalWidth/2-_wallThickness-thickness,_globalDepth/2-26+thickness,_globalHeight-17]),
-            bearingsXY("right").mirroredX().translate([_globalWidth/2+_wallThickness+thickness,_globalDepth/2-26+thickness,_globalHeight-17]),
+            bearingsXY("left").rotateZ(-90).translate([-_globalWidth/2-_wallThickness,_globalDepth/2+_wallThickness,_globalHeight-_wallThickness]),
+            bearingsXY("right").mirroredX().rotateZ(90).translate([_globalWidth/2+_wallThickness,_globalDepth/2+_wallThickness,_globalHeight-_wallThickness]),
             //slides
             slideY("left").translate([-_globalWidth/2+6,XaxisOffset,_globalHeight-21]),
             slideY("right").mirroredX().translate([_globalWidth/2-6,XaxisOffset,_globalHeight-21]),
